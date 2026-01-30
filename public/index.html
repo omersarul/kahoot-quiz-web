@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+  <meta charset="UTF-8">
+  <title>Kahoot Oyuncu</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      text-align: center;
+      background: #f2f2f2;
+      padding-top: 60px;
+      margin: 0;
+    }
+
+    h1 {
+      font-size: 28px;
+      margin-bottom: 30px;
+    }
+
+    #options button {
+      display: block;
+      margin: 10px auto;
+      padding: 15px;
+      width: 240px;
+      font-size: 18px;
+      cursor: pointer;
+      border-radius: 6px;
+      border: 1px solid #ccc;
+      background: #ffffff;
+    }
+
+    #result {
+      margin-top: 20px;
+      font-size: 20px;
+    }
+  </style>
+</head>
+<body>
+
+  <h1 id="question">Hostun soruyu başlatması bekleniyor...</h1>
+  <div id="options"></div>
+  <div id="result"></div>
+
+  <script src="/socket.io/socket.io.js"></script>
+  <script>
+    const socket = io();
+
+    const questionEl = document.getElementById("question");
+    const optionsEl = document.getElementById("options");
+    const resultEl = document.getElementById("result");
+
+    // Yeni soru geldi
+    socket.on("new-question", (data) => {
+      questionEl.innerText = data.question;
+      optionsEl.innerHTML = "";
+      resultEl.innerHTML = "";
+
+      data.options.forEach((opt) => {
+        const btn = document.createElement("button");
+        btn.innerText = opt;
+
+        btn.onclick = () => {
+          socket.emit("answer", opt);
+          // Butonları kilitle
+          Array.from(optionsEl.querySelectorAll("button")).forEach(b => b.disabled = true);
+        };
+
+        optionsEl.appendChild(btn);
+      });
+    });
+
+    // Cevap sonucu geldi (doğru/yanlış)
+    socket.on("answer-result", (data) => {
+      if (data.correct) {
+        resultEl.innerHTML = "✅ Doğru cevap!";
+      } else {
+        resultEl.innerHTML = "❌ Yanlış cevap! Doğru cevap: <b>" + data.correctAnswer + "</b>";
+      }
+    });
+  </script>
+
+</body>
+</html>

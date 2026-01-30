@@ -1,0 +1,312 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+  <meta charset="UTF-8">
+  <title>Quiz Yönetim Paneli</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background: #f3f3ff;
+      margin: 0;
+      padding: 40px;
+      text-align: center;
+    }
+
+    h1 {
+      margin-bottom: 10px;
+    }
+
+    .top-buttons button {
+      margin: 5px;
+      padding: 10px 20px;
+      font-size: 16px;
+      cursor: pointer;
+    }
+
+    .container {
+      max-width: 900px;
+      margin: 30px auto;
+      text-align: left;
+      background: #fff;
+      padding: 20px 30px;
+      border-radius: 8px;
+      box-shadow: 0 0 8px rgba(0,0,0,0.1);
+    }
+
+    label {
+      display: block;
+      margin-top: 10px;
+      font-weight: bold;
+    }
+
+    input[type="text"] {
+      width: 100%;
+      padding: 6px;
+      margin-top: 4px;
+    }
+
+    .question-preview {
+      margin-top: 10px;
+      font-size: 14px;
+      color: #555;
+    }
+
+    .quiz-item {
+      border-bottom: 1px solid #eee;
+      padding: 8px 0;
+    }
+
+    .quiz-item:last-child {
+      border-bottom: none;
+    }
+
+    .section-title {
+      margin-top: 0;
+    }
+
+    .info {
+      color: #555;
+      font-size: 14px;
+    }
+
+    .error {
+      color: red;
+    }
+
+    .success {
+      color: green;
+    }
+  </style>
+</head>
+<body>
+
+  <h1>Quiz Yönetim Paneli</h1>
+  <p class="info">Buradan yeni test oluşturabilir, önceki testleri görebilir ve yarışı başlatabilirsiniz.</p>
+
+  <div class="top-buttons">
+    <button onclick="scrollToSection('create-section')">📝 Yeni Test Oluştur</button>
+    <button onclick="scrollToSection('list-section')">📚 Önceki Testler</button>
+    <button onclick="startGame()">🚀 Yarışı Başlat</button>
+  </div>
+
+  <div id="message" class="info"></div>
+
+  <!-- Yeni test oluşturma -->
+  <div id="create-section" class="container">
+    <h2 class="section-title">📝 Yeni Test Oluştur</h2>
+
+    <label>Test adı:</label>
+    <input type="text" id="quiz-name" placeholder="Örn: Hafta 3 - Döngüler">
+
+    <hr>
+
+    <h3>Soru ekle</h3>
+
+    <label>Soru metni:</label>
+    <input type="text" id="question-text" placeholder="Örn: Türkiye'nin başkenti neresidir?">
+
+    <label>Şık 1:</label>
+    <input type="text" id="opt1" placeholder="İstanbul">
+
+    <label>Şık 2:</label>
+    <input type="text" id="opt2" placeholder="Ankara">
+
+    <label>Şık 3:</label>
+    <input type="text" id="opt3" placeholder="İzmir">
+
+    <label>Şık 4:</label>
+    <input type="text" id="opt4" placeholder="Bursa">
+
+    <label>Doğru şık (1–4):</label>
+    <input type="text" id="correct-index" placeholder="Örn: 2">
+
+    <button onclick="addQuestion()">➕ Soruyu Teste Ekle</button>
+
+    <div class="question-preview" id="question-count">Henüz soru eklenmedi.</div>
+
+    <hr>
+
+    <button onclick="saveQuiz()">💾 Testi Kaydet</button>
+    <div id="create-message"></div>
+  </div>
+
+  <!-- Önceki testler -->
+  <div id="list-section" class="container">
+    <h2 class="section-title">📚 Kayıtlı Testler</h2>
+    <div id="quiz-list">Yükleniyor...</div>
+  </div>
+
+  <script>
+    let currentQuestions = [];
+    let quizzes = [];
+    let selectedQuizId = null;
+
+    function scrollToSection(id) {
+      document.getElementById(id).scrollIntoView({ behavior: "smooth" });
+    }
+
+    function showMessage(text, type = "info") {
+      const msg = document.getElementById("message");
+      msg.className = type;
+      msg.innerText = text;
+    }
+
+    function loadQuizzes() {
+      fetch("/api/quizzes")
+        .then((res) => res.json())
+        .then((data) => {
+          quizzes = data;
+          renderQuizList();
+        })
+        .catch(() => {
+          document.getElementById("quiz-list").innerText =
+            "Testler yüklenirken hata oluştu.";
+        });
+    }
+
+    function renderQuizList() {
+      const list = document.getElementById("quiz-list");
+      list.innerHTML = "";
+
+      if (quizzes.length === 0) {
+        list.innerHTML = "<p>Henüz kayıtlı test yok.</p>";
+        return;
+      }
+
+      quizzes.forEach((q) => {
+        const div = document.createElement("div");
+        div.className = "quiz-item";
+        div.innerHTML = `
+          <label>
+            <input type="radio" name="selectedQuiz" value="${q.id}">
+            <strong>${q.name}</strong> (${q.questions.length} soru)
+          </label>
+        `;
+        list.appendChild(div);
+      });
+
+      document
+        .querySelectorAll('input[name="selectedQuiz"]')
+        .forEach((radio) => {
+          radio.addEventListener("change", (e) => {
+            selectedQuizId = e.target.value;
+            showMessage("Seçilen test ID: " + selectedQuizId);
+          });
+        });
+    }
+
+    function addQuestion() {
+      const text = document.getElementById("question-text").value.trim();
+      const o1 = document.getElementById("opt1").value.trim();
+      const o2 = document.getElementById("opt2").value.trim();
+      const o3 = document.getElementById("opt3").value.trim();
+      const o4 = document.getElementById("opt4").value.trim();
+      const correctIndex = parseInt(
+        document.getElementById("correct-index").value.trim(),
+        10
+      );
+
+      if (!text || !o1 || !o2 || !o3 || !o4 || !(correctIndex >= 1 && correctIndex <= 4)) {
+        document.getElementById("create-message").innerHTML =
+          '<span class="error">Lütfen tüm alanları doldurun ve doğru şık için 1–4 arasında bir sayı girin.</span>';
+        return;
+      }
+
+      const options = [o1, o2, o3, o4];
+      const question = {
+        text,
+        options,
+        correct: options[correctIndex - 1],
+      };
+
+      currentQuestions.push(question);
+
+      document.getElementById("question-count").innerText =
+        currentQuestions.length + " soru eklendi.";
+      document.getElementById("create-message").innerHTML =
+        '<span class="success">Soru eklendi.</span>';
+
+      // formu temizle
+      document.getElementById("question-text").value = "";
+      document.getElementById("opt1").value = "";
+      document.getElementById("opt2").value = "";
+      document.getElementById("opt3").value = "";
+      document.getElementById("opt4").value = "";
+      document.getElementById("correct-index").value = "";
+    }
+
+    function saveQuiz() {
+      const name = document.getElementById("quiz-name").value.trim();
+
+      if (!name) {
+        document.getElementById("create-message").innerHTML =
+          '<span class="error">Lütfen test için bir ad girin.</span>';
+        return;
+      }
+
+      if (currentQuestions.length === 0) {
+        document.getElementById("create-message").innerHTML =
+          '<span class="error">En az bir soru eklemelisiniz.</span>';
+        return;
+      }
+
+      fetch("/api/quizzes", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          name,
+          questions: currentQuestions,
+        }),
+      })
+        .then((res) => res.json())
+        .then((quiz) => {
+          document.getElementById("create-message").innerHTML =
+            '<span class="success">Test kaydedildi.</span>';
+          currentQuestions = [];
+          document.getElementById("question-count").innerText =
+            "Henüz soru eklenmedi.";
+          document.getElementById("quiz-name").value = "";
+
+          quizzes.push(quiz);
+          renderQuizList();
+        })
+        .catch(() => {
+          document.getElementById("create-message").innerHTML =
+            '<span class="error">Test kaydedilirken hata oluştu.</span>';
+        });
+    }
+
+    function startGame() {
+      if (!selectedQuizId) {
+        showMessage("Lütfen önce listeden bir test seçin.", "error");
+        return;
+      }
+
+      fetch("/api/select-quiz", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ quizId: selectedQuizId }),
+      })
+        .then((res) => res.json())
+        .then((data) => {
+          if (data.error) {
+            showMessage("Hata: " + data.error, "error");
+            return;
+          }
+          showMessage(
+            `Seçilen test: ${data.name} (${data.questionCount} soru). Yarışma için host ekranı açılıyor...`,
+            "success"
+          );
+          // Host ekranını aç
+          window.open("/host.html", "_blank");
+        })
+        .catch(() => {
+          showMessage("Test seçilirken hata oluştu.", "error");
+        });
+    }
+
+    // Sayfa açılır açılmaz test listesini getir
+    loadQuizzes();
+  </script>
+</body>
+</html>

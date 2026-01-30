@@ -1,0 +1,25 @@
+{
+  "name": "kahoot_web",
+  "version": "1.0.0",
+  "description": "Interactive Kahoot-style quiz application for university",
+  "main": "Kahoot_tk.js",
+  "scripts": {
+    "start": "node Kahoot_tk.js",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [
+    "quiz",
+    "kahoot",
+    "education"
+  ],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "engines": {
+    "node": ">=18.0.0"
+  },
+  "dependencies": {
+    "express": "^5.2.1",
+    "socket.io": "^4.8.3"
+  }
+}

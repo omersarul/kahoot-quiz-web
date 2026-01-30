@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<html lang="tr">
+
+<head>
+  <meta charset="UTF-8">
+  <title>Kahoot Host</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      text-align: center;
+      background: #46178f;
+      color: #ffffff;
+      padding-top: 80px;
+      margin: 0;
+    }
+
+    h1 {
+      font-size: 40px;
+      margin-bottom: 10px;
+    }
+
+    p {
+      font-size: 18px;
+      margin-bottom: 40px;
+    }
+
+    button {
+      padding: 20px 40px;
+      font-size: 24px;
+      cursor: pointer;
+      border: none;
+      border-radius: 6px;
+      background: #ffffff;
+      color: #46178f;
+      font-weight: bold;
+      box-shadow: 0 4px #999;
+    }
+
+    button:active {
+      box-shadow: 0 2px #666;
+      transform: translateY(2px);
+    }
+
+    #status {
+      margin-top: 20px;
+      font-size: 18px;
+      color: #ffd700;
+    }
+
+    #stats {
+      margin-top: 30px;
+      font-size: 20px;
+      color: #ffffff;
+    }
+  </style>
+</head>
+
+<body>
+
+  <h1>Öğretmen Paneli</h1>
+  <p>Oyuncular hazırsa soruyu başlat</p>
+
+  <button onclick="baslat()">Soruyu Başlat 🚀</button>
+
+  <div id="status"></div>
+  <div id="quiz-info" style="margin-top: 20px; font-size: 18px;"></div>
+
+  <div id="stats">
+    <p>Toplam cevap: <span id="total">0</span></p>
+    <p>Doğru: <span id="correct">0</span> | Yanlış: <span id="wrong">0</span></p>
+  </div>
+
+  <script src="/socket.io/socket.io.js"></script>
+  <script>
+    const socket = io();
+
+    function baslat() {
+      socket.emit("send-question");
+      document.getElementById("status").innerText =
+        "✅ Sinyal gönderildi! Oyuncular soruyu görüyor.";
+
+      // Yeni soru için sayaçları sıfırla
+      document.getElementById("total").innerText = "0";
+      document.getElementById("correct").innerText = "0";
+      document.getElementById("wrong").innerText = "0";
+    }
+
+    // Host'a da soru bilgisi gelsin (öğrencilerle aynı event)
+    socket.on("new-question", (data) => {
+      const info = document.getElementById("quiz-info");
+      info.innerHTML = `
+        <strong>📝 ${data.quizName}</strong><br>
+        Soru ${data.questionNumber} / ${data.totalQuestions}: ${data.question}
+      `;
+    });
+
+    // Sunucudan istatistik geldiğinde güncelle
+    socket.on("stats-update", (data) => {
+      document.getElementById("total").innerText = data.total;
+      document.getElementById("correct").innerText = data.correct;
+      document.getElementById("wrong").innerText = data.wrong;
+    });
+
+    // Eğer test seçilmemişse uyar
+    socket.on("no-quiz-selected", () => {
+      document.getElementById("status").innerHTML =
+        "❌ <span style='color: #ff6b6b;'>Önce admin panelinden bir test seçin!</span>";
+      document.getElementById("quiz-info").innerHTML = "";
+    });
+  </script>
+
+</body>
+
+</html>

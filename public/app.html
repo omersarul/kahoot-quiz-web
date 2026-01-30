@@ -1,0 +1,923 @@
+<!DOCTYPE html>
+<html lang="tr">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Kahoot Clone - Tüm Özellikler</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+        }
+
+        /* Role Selection Screen */
+        #role-selection {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            color: white;
+            text-align: center;
+            padding: 20px;
+        }
+
+        #role-selection h1 {
+            font-size: 48px;
+            margin-bottom: 20px;
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.3);
+        }
+
+        #role-selection p {
+            font-size: 20px;
+            margin-bottom: 50px;
+            opacity: 0.9;
+        }
+
+        .role-buttons {
+            display: flex;
+            gap: 30px;
+            flex-wrap: wrap;
+            justify-content: center;
+        }
+
+        .role-btn {
+            background: white;
+            color: #667eea;
+            border: none;
+            padding: 30px 40px;
+            font-size: 24px;
+            font-weight: bold;
+            border-radius: 15px;
+            cursor: pointer;
+            box-shadow: 0 8px 20px rgba(0, 0, 0, 0.2);
+            transition: all 0.3s ease;
+            min-width: 200px;
+        }
+
+        .role-btn:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 12px 30px rgba(0, 0, 0, 0.3);
+        }
+
+        .role-btn:active {
+            transform: translateY(-2px);
+        }
+
+        /* Main App Container */
+        #app-container {
+            display: none;
+            background: white;
+            min-height: 100vh;
+        }
+
+        /* Navigation */
+        .nav-header {
+            background: #46178f;
+            color: white;
+            padding: 15px 30px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+        }
+
+        .nav-header h2 {
+            font-size: 28px;
+        }
+
+        .nav-tabs {
+            display: flex;
+            gap: 10px;
+        }
+
+        .tab-btn {
+            background: rgba(255, 255, 255, 0.2);
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            font-size: 16px;
+            border-radius: 5px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .tab-btn:hover {
+            background: rgba(255, 255, 255, 0.3);
+        }
+
+        .tab-btn.active {
+            background: white;
+            color: #46178f;
+        }
+
+        .back-btn {
+            background: rgba(255, 255, 255, 0.2);
+            color: white;
+            border: 2px solid white;
+            padding: 8px 20px;
+            font-size: 16px;
+            border-radius: 5px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .back-btn:hover {
+            background: white;
+            color: #46178f;
+        }
+
+        /* Content Sections */
+        .content-section {
+            display: none;
+            padding: 30px;
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        .content-section.active {
+            display: block;
+        }
+
+        /* Student View Styling */
+        #student-view {
+            background: #f2f2f2;
+            min-height: 100vh;
+            display: none;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+            padding: 40px;
+        }
+
+        #student-view.active {
+            display: flex;
+        }
+
+        #student-question {
+            font-size: 32px;
+            margin-bottom: 40px;
+            color: #333;
+        }
+
+        #student-options button {
+            display: block;
+            margin: 15px auto;
+            padding: 20px 40px;
+            width: 300px;
+            font-size: 20px;
+            cursor: pointer;
+            border-radius: 10px;
+            border: none;
+            background: white;
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+            transition: all 0.3s ease;
+        }
+
+        #student-options button:hover:not(:disabled) {
+            transform: translateY(-3px);
+            box-shadow: 0 6px 15px rgba(0, 0, 0, 0.15);
+        }
+
+        #student-options button:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+        }
+
+        #student-result {
+            margin-top: 30px;
+            font-size: 24px;
+            font-weight: bold;
+        }
+
+        /* Host View Styling */
+        #host-view {
+            text-align: center;
+        }
+
+        .host-header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 40px;
+            border-radius: 10px;
+            margin-bottom: 30px;
+        }
+
+        .host-header h2 {
+            font-size: 36px;
+            margin-bottom: 15px;
+        }
+
+        .send-question-btn {
+            padding: 20px 50px;
+            font-size: 24px;
+            cursor: pointer;
+            border: none;
+            border-radius: 10px;
+            background: white;
+            color: #46178f;
+            font-weight: bold;
+            box-shadow: 0 6px 15px rgba(0, 0, 0, 0.2);
+            transition: all 0.3s ease;
+            margin: 20px 0;
+        }
+
+        .send-question-btn:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 9px 20px rgba(0, 0, 0, 0.3);
+        }
+
+        .send-question-btn:active {
+            transform: translateY(-1px);
+        }
+
+        .host-status {
+            margin: 20px 0;
+            font-size: 18px;
+            min-height: 30px;
+        }
+
+        .quiz-info-box {
+            background: #f8f9fa;
+            padding: 20px;
+            border-radius: 10px;
+            margin: 20px 0;
+            border-left: 4px solid #667eea;
+        }
+
+        .stats-box {
+            display: flex;
+            gap: 30px;
+            justify-content: center;
+            margin-top: 30px;
+        }
+
+        .stat-card {
+            background: white;
+            padding: 20px 40px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+            min-width: 150px;
+        }
+
+        .stat-card h3 {
+            font-size: 16px;
+            color: #666;
+            margin-bottom: 10px;
+        }
+
+        .stat-card .number {
+            font-size: 36px;
+            font-weight: bold;
+            color: #46178f;
+        }
+
+        /* Admin Panel Styling */
+        .admin-container {
+            background: white;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 2px 15px rgba(0, 0, 0, 0.1);
+            margin-bottom: 30px;
+        }
+
+        .admin-container h3 {
+            margin-bottom: 20px;
+            color: #46178f;
+            font-size: 24px;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: bold;
+            color: #333;
+        }
+
+        .form-group input {
+            width: 100%;
+            padding: 12px;
+            font-size: 16px;
+            border: 2px solid #ddd;
+            border-radius: 5px;
+            transition: border-color 0.3s;
+        }
+
+        .form-group input:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+
+        .btn {
+            padding: 12px 30px;
+            font-size: 16px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-weight: bold;
+        }
+
+        .btn-primary {
+            background: #667eea;
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background: #5568d3;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
+        }
+
+        .btn-success {
+            background: #28a745;
+            color: white;
+        }
+
+        .btn-success:hover {
+            background: #218838;
+        }
+
+        .quiz-list-item {
+            background: #f8f9fa;
+            padding: 15px;
+            margin-bottom: 10px;
+            border-radius: 5px;
+            border-left: 4px solid #667eea;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .quiz-list-item:hover {
+            background: #e9ecef;
+            transform: translateX(5px);
+        }
+
+        .quiz-list-item.selected {
+            background: #e7f3ff;
+            border-left-color: #28a745;
+        }
+
+        .message {
+            padding: 15px;
+            border-radius: 5px;
+            margin: 15px 0;
+            font-weight: bold;
+        }
+
+        .message.success {
+            background: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+
+        .message.error {
+            background: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+
+        .message.info {
+            background: #d1ecf1;
+            color: #0c5460;
+            border: 1px solid #bee5eb;
+        }
+
+        /* Mobile Responsive Design */
+        @media (max-width: 768px) {
+
+            /* Role Selection */
+            #role-selection h1 {
+                font-size: 32px;
+            }
+
+            #role-selection p {
+                font-size: 18px;
+                margin-bottom: 30px;
+            }
+
+            .role-buttons {
+                gap: 15px;
+                width: 100%;
+                padding: 0 20px;
+            }
+
+            .role-btn {
+                min-width: 100%;
+                padding: 25px 20px;
+                font-size: 20px;
+            }
+
+            /* Student View - Optimized for phones */
+            #student-view {
+                padding: 20px 15px;
+            }
+
+            #student-question {
+                font-size: 22px;
+                margin-bottom: 30px;
+                padding: 0 10px;
+            }
+
+            #student-options button {
+                width: 90%;
+                max-width: 350px;
+                padding: 18px 20px;
+                font-size: 18px;
+                margin: 12px auto;
+                /* Better tap targets for mobile */
+                min-height: 60px;
+            }
+
+            #student-result {
+                font-size: 20px;
+                padding: 0 15px;
+            }
+
+            .back-btn {
+                padding: 10px 15px;
+                font-size: 14px;
+                top: 15px !important;
+                left: 15px !important;
+            }
+
+            /* Host View Mobile */
+            .host-header h2 {
+                font-size: 28px;
+            }
+
+            .send-question-btn {
+                padding: 18px 30px;
+                font-size: 20px;
+                width: 90%;
+                max-width: 400px;
+            }
+
+            .stats-box {
+                flex-direction: column;
+                gap: 15px;
+            }
+
+            .stat-card {
+                width: 100%;
+                max-width: 300px;
+                margin: 0 auto;
+            }
+
+            /* Admin Panel Mobile */
+            .nav-header {
+                flex-direction: column;
+                gap: 15px;
+                padding: 15px;
+            }
+
+            .nav-header h2 {
+                font-size: 22px;
+            }
+
+            .nav-tabs {
+                flex-direction: column;
+                width: 100%;
+                gap: 8px;
+            }
+
+            .tab-btn {
+                width: 100%;
+            }
+
+            .content-section {
+                padding: 15px;
+            }
+
+            .admin-container {
+                padding: 20px 15px;
+            }
+
+            .quiz-info-box {
+                padding: 15px;
+            }
+        }
+
+        /* Extra small screens */
+        @media (max-width: 480px) {
+            #student-question {
+                font-size: 20px;
+            }
+
+            #student-options button {
+                font-size: 16px;
+                padding: 16px 15px;
+            }
+
+            .role-btn {
+                font-size: 18px;
+                padding: 20px 15px;
+            }
+        }
+    </style>
+</head>
+
+<body>
+
+    <!-- Role Selection Screen -->
+    <div id="role-selection">
+        <h1>🎓 Kahoot Clone</h1>
+        <p>Rolünüzü seçin</p>
+
+        <div class="role-buttons">
+            <button class="role-btn" onclick="selectRole('admin')">
+                👨‍🏫 Öğretmen<br><small style="font-size: 14px; font-weight: normal;">Quiz Yönetimi</small>
+            </button>
+            <button class="role-btn" onclick="selectRole('host')">
+                🎮 Host<br><small style="font-size: 14px; font-weight: normal;">Soruları Gönder</small>
+            </button>
+            <button class="role-btn" onclick="selectRole('student')">
+                👨‍🎓 Öğrenci<br><small style="font-size: 14px; font-weight: normal;">Soruları Cevapla</small>
+            </button>
+        </div>
+    </div>
+
+    <!-- Admin/Host App Container -->
+    <div id="app-container">
+        <div class="nav-header">
+            <h2 id="app-title">Kahoot Clone</h2>
+            <div class="nav-tabs" id="nav-tabs"></div>
+            <button class="back-btn" onclick="backToRoleSelection()">⬅ Geri</button>
+        </div>
+
+        <!-- Admin Section -->
+        <div id="admin-section" class="content-section">
+            <div class="admin-container">
+                <h3>📝 Yeni Test Oluştur</h3>
+
+                <div class="form-group">
+                    <label>Test Adı:</label>
+                    <input type="text" id="quiz-name" placeholder="Örn: Hafta 3 - Döngüler">
+                </div>
+
+                <hr style="margin: 30px 0;">
+
+                <h4>Soru Ekle</h4>
+
+                <div class="form-group">
+                    <label>Soru Metni:</label>
+                    <input type="text" id="question-text" placeholder="Soru metnini girin...">
+                </div>
+
+                <div class="form-group">
+                    <label>Şık 1:</label>
+                    <input type="text" id="opt1" placeholder="İlk şık">
+                </div>
+
+                <div class="form-group">
+                    <label>Şık 2:</label>
+                    <input type="text" id="opt2" placeholder="İkinci şık">
+                </div>
+
+                <div class="form-group">
+                    <label>Şık 3:</label>
+                    <input type="text" id="opt3" placeholder="Üçüncü şık">
+                </div>
+
+                <div class="form-group">
+                    <label>Şık 4:</label>
+                    <input type="text" id="opt4" placeholder="Dördüncü şık">
+                </div>
+
+                <div class="form-group">
+                    <label>Doğru Şık (1-4):</label>
+                    <input type="text" id="correct-index" placeholder="1, 2, 3 veya 4">
+                </div>
+
+                <button class="btn btn-primary" onclick="addQuestion()">➕ Soruyu Teste Ekle</button>
+
+                <div id="question-count" style="margin-top: 15px; color: #666;"></div>
+                <div id="create-message"></div>
+
+                <hr style="margin: 30px 0;">
+
+                <button class="btn btn-success" onclick="saveQuiz()">💾 Testi Kaydet</button>
+            </div>
+
+            <div class="admin-container">
+                <h3>📚 Kayıtlı Testler</h3>
+                <div id="quiz-list">Yükleniyor...</div>
+                <button class="btn btn-success" style="margin-top: 20px;" onclick="startGame()">🚀 Seçili Testi Aktif
+                    Et</button>
+                <div id="select-message"></div>
+            </div>
+        </div>
+
+        <!-- Host Section -->
+        <div id="host-section" class="content-section">
+            <div class="host-header">
+                <h2>🎮 Öğretmen Host Paneli</h2>
+                <p>Oyuncular hazır olduğunda soruları başlatın</p>
+            </div>
+
+            <button class="send-question-btn" onclick="sendQuestion()">Soruyu Başlat 🚀</button>
+
+            <div class="host-status" id="host-status"></div>
+
+            <div class="quiz-info-box" id="quiz-info-box"></div>
+
+            <div class="stats-box">
+                <div class="stat-card">
+                    <h3>Toplam Cevap</h3>
+                    <div class="number" id="total-answers">0</div>
+                </div>
+                <div class="stat-card">
+                    <h3>✅ Doğru</h3>
+                    <div class="number" id="correct-answers" style="color: #28a745;">0</div>
+                </div>
+                <div class="stat-card">
+                    <h3>❌ Yanlış</h3>
+                    <div class="number" id="wrong-answers" style="color: #dc3545;">0</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Student View -->
+    <div id="student-view">
+        <button class="back-btn" onclick="backToRoleSelection()" style="position: absolute; top: 20px; left: 20px;">⬅
+            Geri</button>
+
+        <h1 id="student-question">Hostun soruyu başlatması bekleniyor...</h1>
+        <div id="student-options"></div>
+        <div id="student-result"></div>
+    </div>
+
+    <script src="/socket.io/socket.io.js"></script>
+    <script>
+        const socket = io();
+
+        // State
+        let currentQuestions = [];
+        let quizzes = [];
+        let selectedQuizId = null;
+
+        // Role Selection
+        function selectRole(role) {
+            document.getElementById('role-selection').style.display = 'none';
+
+            if (role === 'student') {
+                document.getElementById('student-view').classList.add('active');
+            } else {
+                document.getElementById('app-container').style.display = 'block';
+
+                if (role === 'admin') {
+                    showSection('admin-section');
+                    document.getElementById('app-title').textContent = '👨‍🏫 Öğretmen Paneli';
+                    setupAdminTabs();
+                    loadQuizzes();
+                } else if (role === 'host') {
+                    showSection('host-section');
+                    document.getElementById('app-title').textContent = '🎮 Host Paneli';
+                    document.getElementById('nav-tabs').innerHTML = '';
+                }
+            }
+        }
+
+        function setupAdminTabs() {
+            const navTabs = document.getElementById('nav-tabs');
+            navTabs.innerHTML = `
+        <button class="tab-btn active" onclick="showSection('admin-section')">📝 Quiz Yönetimi</button>
+        <button class="tab-btn" onclick="showSection('host-section')">🎮 Host Paneli</button>
+      `;
+        }
+
+        function showSection(sectionId) {
+            document.querySelectorAll('.content-section').forEach(section => {
+                section.classList.remove('active');
+            });
+            document.getElementById(sectionId).classList.add('active');
+
+            document.querySelectorAll('.tab-btn').forEach(btn => {
+                btn.classList.remove('active');
+            });
+
+            if (sectionId === 'admin-section') {
+                document.querySelectorAll('.tab-btn')[0]?.classList.add('active');
+            } else if (sectionId === 'host-section') {
+                document.querySelectorAll('.tab-btn')[1]?.classList.add('active');
+            }
+        }
+
+        function backToRoleSelection() {
+            document.getElementById('role-selection').style.display = 'flex';
+            document.getElementById('app-container').style.display = 'none';
+            document.getElementById('student-view').classList.remove('active');
+        }
+
+        // Admin Functions
+        function loadQuizzes() {
+            fetch('/api/quizzes')
+                .then(res => res.json())
+                .then(data => {
+                    quizzes = data;
+                    renderQuizList();
+                })
+                .catch(() => {
+                    document.getElementById('quiz-list').innerHTML = '<div class="message error">Testler yüklenirken hata oluştu.</div>';
+                });
+        }
+
+        function renderQuizList() {
+            const list = document.getElementById('quiz-list');
+            list.innerHTML = '';
+
+            if (quizzes.length === 0) {
+                list.innerHTML = '<p style="color: #666;">Henüz kayıtlı test yok.</p>';
+                return;
+            }
+
+            quizzes.forEach(q => {
+                const div = document.createElement('div');
+                div.className = 'quiz-list-item' + (selectedQuizId === q.id ? ' selected' : '');
+                div.innerHTML = `
+          <strong>${q.name}</strong><br>
+          <small style="color: #666;">${q.questions.length} soru</small>
+        `;
+                div.onclick = () => {
+                    selectedQuizId = q.id;
+                    renderQuizList();
+                    showMessage('select-message', `"${q.name}" seçildi`, 'info');
+                };
+                list.appendChild(div);
+            });
+        }
+
+        function addQuestion() {
+            const text = document.getElementById('question-text').value.trim();
+            const o1 = document.getElementById('opt1').value.trim();
+            const o2 = document.getElementById('opt2').value.trim();
+            const o3 = document.getElementById('opt3').value.trim();
+            const o4 = document.getElementById('opt4').value.trim();
+            const correctIndex = parseInt(document.getElementById('correct-index').value.trim(), 10);
+
+            if (!text || !o1 || !o2 || !o3 || !o4 || !(correctIndex >= 1 && correctIndex <= 4)) {
+                showMessage('create-message', 'Lütfen tüm alanları doldurun ve doğru şık için 1-4 arasında bir sayı girin.', 'error');
+                return;
+            }
+
+            const options = [o1, o2, o3, o4];
+            const question = {
+                text,
+                options,
+                correct: options[correctIndex - 1]
+            };
+
+            currentQuestions.push(question);
+
+            document.getElementById('question-count').innerHTML = `<strong>${currentQuestions.length} soru eklendi.</strong>`;
+            showMessage('create-message', 'Soru başarıyla eklendi!', 'success');
+
+            // Clear form
+            document.getElementById('question-text').value = '';
+            document.getElementById('opt1').value = '';
+            document.getElementById('opt2').value = '';
+            document.getElementById('opt3').value = '';
+            document.getElementById('opt4').value = '';
+            document.getElementById('correct-index').value = '';
+        }
+
+        function saveQuiz() {
+            const name = document.getElementById('quiz-name').value.trim();
+
+            if (!name) {
+                showMessage('create-message', 'Lütfen test için bir ad girin.', 'error');
+                return;
+            }
+
+            if (currentQuestions.length === 0) {
+                showMessage('create-message', 'En az bir soru eklemelisiniz.', 'error');
+                return;
+            }
+
+            fetch('/api/quizzes', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ name, questions: currentQuestions })
+            })
+                .then(res => res.json())
+                .then(quiz => {
+                    showMessage('create-message', `"${name}" testi başarıyla kaydedildi!`, 'success');
+                    currentQuestions = [];
+                    document.getElementById('question-count').innerHTML = '';
+                    document.getElementById('quiz-name').value = '';
+                    quizzes.push(quiz);
+                    renderQuizList();
+                })
+                .catch(() => {
+                    showMessage('create-message', 'Test kaydedilirken hata oluştu.', 'error');
+                });
+        }
+
+        function startGame() {
+            if (!selectedQuizId) {
+                showMessage('select-message', 'Lütfen önce listeden bir test seçin.', 'error');
+                return;
+            }
+
+            fetch('/api/select-quiz', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ quizId: selectedQuizId })
+            })
+                .then(res => res.json())
+                .then(data => {
+                    if (data.error) {
+                        showMessage('select-message', 'Hata: ' + data.error, 'error');
+                        return;
+                    }
+                    showMessage('select-message', `"${data.name}" aktif edildi! Host paneline geçebilirsiniz.`, 'success');
+                    showSection('host-section');
+                })
+                .catch(() => {
+                    showMessage('select-message', 'Test seçilirken hata oluştu.', 'error');
+                });
+        }
+
+        function showMessage(elementId, text, type) {
+            const el = document.getElementById(elementId);
+            el.innerHTML = `<div class="message ${type}">${text}</div>`;
+        }
+
+        // Host Functions
+        function sendQuestion() {
+            socket.emit('send-question');
+            document.getElementById('host-status').innerHTML = '<div class="message success">✅ Sinyal gönderildi! Oyuncular soruyu görüyor.</div>';
+
+            document.getElementById('total-answers').textContent = '0';
+            document.getElementById('correct-answers').textContent = '0';
+            document.getElementById('wrong-answers').textContent = '0';
+        }
+
+        socket.on('new-question', (data) => {
+            document.getElementById('quiz-info-box').innerHTML = `
+        <h3>📝 ${data.quizName}</h3>
+        <p style="font-size: 18px; margin-top: 10px;">
+          <strong>Soru ${data.questionNumber} / ${data.totalQuestions}:</strong><br>
+          ${data.question}
+        </p>
+      `;
+        });
+
+        socket.on('stats-update', (data) => {
+            document.getElementById('total-answers').textContent = data.total;
+            document.getElementById('correct-answers').textContent = data.correct;
+            document.getElementById('wrong-answers').textContent = data.wrong;
+        });
+
+        socket.on('no-quiz-selected', () => {
+            document.getElementById('host-status').innerHTML = '<div class="message error">❌ Önce admin panelinden bir test seçin!</div>';
+            document.getElementById('quiz-info-box').innerHTML = '';
+        });
+
+        // Student Functions
+        const questionEl = document.getElementById('student-question');
+        const optionsEl = document.getElementById('student-options');
+        const resultEl = document.getElementById('student-result');
+
+        socket.on('new-question', (data) => {
+            questionEl.textContent = data.question;
+            optionsEl.innerHTML = '';
+            resultEl.innerHTML = '';
+
+            data.options.forEach(opt => {
+                const btn = document.createElement('button');
+                btn.textContent = opt;
+                btn.onclick = () => {
+                    socket.emit('answer', opt);
+                    Array.from(optionsEl.querySelectorAll('button')).forEach(b => b.disabled = true);
+                };
+                optionsEl.appendChild(btn);
+            });
+        });
+
+        socket.on('answer-result', (data) => {
+            if (data.correct) {
+                resultEl.innerHTML = '<span style="color: #28a745;">✅ Doğru cevap!</span>';
+            } else {
+                resultEl.innerHTML = `<span style="color: #dc3545;">❌ Yanlış cevap! Doğru cevap: <strong>${data.correctAnswer}</strong></span>`;
+            }
+        });
+    </script>
+
+</body>
+
+</html>
