@@ -13,7 +13,8 @@ app.use(express.json());
 // Aktif yarışma bilgileri
 let activeQuizId = null;
 let currentQuestionIndex = 0;
-let answers = {}; // socket.id -> cevap
+let answers = {}; // socket.id -> {answer, studentName}
+let studentNames = {}; // socket.id -> name
 
 async function getActiveQuiz() {
   if (!activeQuizId) return null;
@@ -76,6 +77,12 @@ app.post("/api/select-quiz", async (req, res) => {
 io.on("connection", (socket) => {
   console.log("Bir kullanıcı bağlandı:", socket.id);
 
+  // Student joined with name
+  socket.on("student-joined", (data) => {
+    studentNames[socket.id] = data.name;
+    console.log("Öğrenci katıldı:", data.name, socket.id);
+  });
+
   // Host: Soruyu başlat (seçili testten sıradaki soru)
   socket.on("send-question", async () => {
     const quiz = await getActiveQuiz();
@@ -108,12 +115,15 @@ io.on("connection", (socket) => {
   });
 
   // Oyuncu cevap gönderdi
-  socket.on("answer", async (answer) => {
+  socket.on("answer", async (data) => {
     const quiz = await getActiveQuiz();
     if (!quiz) return;
 
-    answers[socket.id] = answer;
-    console.log("Cevap geldi:", socket.id, answer);
+    const answer = typeof data === 'string' ? data : data.answer;
+    const studentName = typeof data === 'object' ? data.studentName : 'Anonim';
+
+    answers[socket.id] = { answer, studentName };
+    console.log("Cevap geldi:", studentName, answer);
 
     const currentQ = getLastQuestion(quiz);
     const isCorrect = answer === currentQ.correct;
@@ -125,21 +135,31 @@ io.on("connection", (socket) => {
 
     const total = Object.keys(answers).length;
     let correctCount = 0;
-    Object.values(answers).forEach((a) => {
-      if (a === currentQ.correct) correctCount++;
+    const answerDetails = [];
+
+    Object.entries(answers).forEach(([socketId, answerData]) => {
+      const ans = typeof answerData === 'string' ? answerData : answerData.answer;
+      const name = typeof answerData === 'object' ? answerData.studentName : 'Anonim';
+      const correct = ans === currentQ.correct;
+
+      if (correct) correctCount++;
+      answerDetails.push({ name, answer: ans, correct });
     });
+
     const wrongCount = total - correctCount;
 
     io.emit("stats-update", {
       total,
       correct: correctCount,
       wrong: wrongCount,
+      details: answerDetails
     });
   });
 
   socket.on("disconnect", () => {
     console.log("Kullanıcı ayrıldı:", socket.id);
     delete answers[socket.id];
+    delete studentNames[socket.id];
   });
 });
 

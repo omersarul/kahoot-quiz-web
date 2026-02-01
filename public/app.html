@@ -148,6 +148,21 @@
         }
 
         /* Student View Styling */
+        #student-name-entry {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: none;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            padding: 40px;
+        }
+
+        #student-name-entry.active {
+            display: flex;
+        }
+
         #student-view {
             background: #f2f2f2;
             min-height: 100vh;
@@ -648,6 +663,36 @@
                     <div class="number" id="wrong-answers" style="color: #dc3545;">0</div>
                 </div>
             </div>
+
+            <div class="quiz-info-box" style="margin-top: 30px;">
+                <h3>👥 Öğrenci Cevapları</h3>
+                <div id="student-answers-list" style="margin-top: 15px; max-height: 300px; overflow-y: auto;">
+                    <p style="color: #999; font-style: italic;">Henüz cevap yok...</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Student Name Entry -->
+    <div id="student-name-entry">
+        <button class="back-btn" onclick="backToRoleSelection()" style="position: absolute; top: 20px; left: 20px;">⬅
+            Geri</button>
+
+        <div style="text-align: center;">
+            <h1 style="font-size: 48px; margin-bottom: 20px;">👨‍🎓 Hoş Geldin!</h1>
+            <p style="font-size: 24px; margin-bottom: 40px; opacity: 0.9;">Yarışmaya katılmak için ismini gir</p>
+
+            <div style="max-width: 400px; margin: 0 auto;">
+                <input type="text" id="student-name-input" placeholder="İsmini gir..."
+                    style="width: 100%; padding: 20px; font-size: 20px; border: 3px solid white; border-radius: 10px; background: rgba(255,255,255,0.9); text-align: center;"
+                    onkeypress="if(event.key==='Enter') joinQuiz()">
+                <div id="name-error" style="color: #ff4444; margin-top: 15px; font-size: 18px; font-weight: bold;">
+                </div>
+                <button onclick="joinQuiz()"
+                    style="margin-top: 30px; padding: 20px 60px; font-size: 24px; background: white; color: #667eea; border: none; border-radius: 10px; cursor: pointer; font-weight: bold; box-shadow: 0 4px 15px rgba(0,0,0,0.2); transition: transform 0.3s;"
+                    onmouseover="this.style.transform='translateY(-3px)'"
+                    onmouseout="this.style.transform='translateY(0)'">🚀 Katıl</button>
+            </div>
         </div>
     </div>
 
@@ -655,6 +700,11 @@
     <div id="student-view">
         <button class="back-btn" onclick="backToRoleSelection()" style="position: absolute; top: 20px; left: 20px;">⬅
             Geri</button>
+
+        <div id="student-name-display"
+            style="position: absolute; top: 20px; right: 20px; background: rgba(255,255,255,0.2); padding: 10px 20px; border-radius: 20px; font-size: 18px; font-weight: bold;">
+            👤 <span id="student-name-label"></span>
+        </div>
 
         <h1 id="student-question">Hostun soruyu başlatması bekleniyor...</h1>
         <div id="student-options"></div>
@@ -669,13 +719,14 @@
         let currentQuestions = [];
         let quizzes = [];
         let selectedQuizId = null;
+        let studentName = '';
 
         // Role Selection
         function selectRole(role) {
             document.getElementById('role-selection').style.display = 'none';
 
             if (role === 'student') {
-                document.getElementById('student-view').classList.add('active');
+                document.getElementById('student-name-entry').classList.add('active');
             } else {
                 document.getElementById('app-container').style.display = 'block';
 
@@ -720,7 +771,9 @@
         function backToRoleSelection() {
             document.getElementById('role-selection').style.display = 'flex';
             document.getElementById('app-container').style.display = 'none';
+            document.getElementById('student-name-entry').classList.remove('active');
             document.getElementById('student-view').classList.remove('active');
+            studentName = '';
         }
 
         // Admin Functions
@@ -857,6 +910,43 @@
             el.innerHTML = `<div class="message ${type}">${text}</div>`;
         }
 
+        // Student Name Entry Function
+        function joinQuiz() {
+            const nameInput = document.getElementById('student-name-input');
+            const name = nameInput.value.trim();
+            const errorEl = document.getElementById('name-error');
+
+            if (!name) {
+                errorEl.textContent = '❌ Lütfen ismini gir!';
+                nameInput.focus();
+                return;
+            }
+
+            if (name.length < 2) {
+                errorEl.textContent = '❌ İsmin en az 2 karakter olmalı!';
+                nameInput.focus();
+                return;
+            }
+
+            if (name.length > 20) {
+                errorEl.textContent = '❌ İsmin çok uzun (max 20 karakter)!';
+                nameInput.focus();
+                return;
+            }
+
+            // Save student name and join quiz
+            studentName = name;
+            errorEl.textContent = '';
+
+            // Hide name entry, show quiz view
+            document.getElementById('student-name-entry').classList.remove('active');
+            document.getElementById('student-view').classList.add('active');
+            document.getElementById('student-name-label').textContent = studentName;
+
+            // Notify server
+            socket.emit('student-joined', { name: studentName });
+        }
+
         // Host Functions
         function sendQuestion() {
             socket.emit('send-question');
@@ -865,6 +955,7 @@
             document.getElementById('total-answers').textContent = '0';
             document.getElementById('correct-answers').textContent = '0';
             document.getElementById('wrong-answers').textContent = '0';
+            document.getElementById('student-answers-list').innerHTML = '<p style="color: #999; font-style: italic;">Henüz cevap yok...</p>';
         }
 
         socket.on('new-question', (data) => {
@@ -881,6 +972,21 @@
             document.getElementById('total-answers').textContent = data.total;
             document.getElementById('correct-answers').textContent = data.correct;
             document.getElementById('wrong-answers').textContent = data.wrong;
+
+            // Update student answers list
+            const listEl = document.getElementById('student-answers-list');
+            if (data.details && data.details.length > 0) {
+                listEl.innerHTML = data.details.map((student, index) => `
+                    <div style="padding: 12px; margin-bottom: 8px; background: ${student.correct ? '#d4edda' : '#f8d7da'}; border-left: 4px solid ${student.correct ? '#28a745' : '#dc3545'}; border-radius: 5px;">
+                        <strong style="font-size: 16px;">${index + 1}. ${student.name}</strong>
+                        <span style="float: right; font-size: 20px;">${student.correct ? '✅' : '❌'}</span>
+                        <br>
+                        <span style="color: #666; font-size: 14px;">Cevap: ${student.answer}</span>
+                    </div>
+                `).join('');
+            } else {
+                listEl.innerHTML = '<p style="color: #999; font-style: italic;">Henüz cevap yok...</p>';
+            }
         });
 
         socket.on('no-quiz-selected', () => {
@@ -902,7 +1008,7 @@
                 const btn = document.createElement('button');
                 btn.textContent = opt;
                 btn.onclick = () => {
-                    socket.emit('answer', opt);
+                    socket.emit('answer', { answer: opt, studentName: studentName });
                     Array.from(optionsEl.querySelectorAll('button')).forEach(b => b.disabled = true);
                 };
                 optionsEl.appendChild(btn);
