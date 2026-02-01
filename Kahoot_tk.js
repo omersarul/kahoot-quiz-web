@@ -1,8 +1,7 @@
 const express = require("express");
 const http = require("http");
 const { Server } = require("socket.io");
-const fs = require("fs");
-const path = require("path");
+const db = require("./db");
 
 const app = express();
 const server = http.createServer(app);
@@ -11,31 +10,14 @@ const io = new Server(server);
 app.use(express.static("public"));
 app.use(express.json());
 
-// ====== Quiz dosyası yardımcıları ======
-const QUIZ_FILE = path.join(__dirname, "quizzes.json");
-
-function readQuizzes() {
-  try {
-    const raw = fs.readFileSync(QUIZ_FILE, "utf8");
-    return JSON.parse(raw);
-  } catch (e) {
-    return [];
-  }
-}
-
-function saveQuizzes(quizzes) {
-  fs.writeFileSync(QUIZ_FILE, JSON.stringify(quizzes, null, 2), "utf8");
-}
-
 // Aktif yarışma bilgileri
 let activeQuizId = null;
 let currentQuestionIndex = 0;
 let answers = {}; // socket.id -> cevap
 
-function getActiveQuiz() {
+async function getActiveQuiz() {
   if (!activeQuizId) return null;
-  const quizzes = readQuizzes();
-  return quizzes.find((q) => q.id === activeQuizId) || null;
+  return await db.getQuizById(activeQuizId);
 }
 
 function getLastQuestion(quiz) {
@@ -50,36 +32,33 @@ function getLastQuestion(quiz) {
 // ====== REST API – Hocanın paneli için ======
 
 // Tüm testleri getir
-app.get("/api/quizzes", (req, res) => {
-  res.json(readQuizzes());
+app.get("/api/quizzes", async (req, res) => {
+  const quizzes = await db.getAllQuizzes();
+  res.json(quizzes);
 });
 
 // Yeni test kaydet
-app.post("/api/quizzes", (req, res) => {
+app.post("/api/quizzes", async (req, res) => {
   const { name, questions } = req.body;
 
   if (!name || !questions || !Array.isArray(questions) || questions.length === 0) {
     return res.status(400).json({ error: "Geçersiz quiz verisi" });
   }
 
-  const quizzes = readQuizzes();
-  const quiz = {
-    id: Date.now().toString(),
-    name,
-    questions,
-  };
+  const quizId = Date.now().toString();
 
-  quizzes.push(quiz);
-  saveQuizzes(quizzes);
-
-  res.json(quiz);
+  try {
+    const quiz = await db.createQuiz(quizId, name, questions);
+    res.json(quiz);
+  } catch (error) {
+    res.status(500).json({ error: "Quiz kaydedilirken hata oluştu" });
+  }
 });
 
 // Hangi testin kullanılacağını seç
-app.post("/api/select-quiz", (req, res) => {
+app.post("/api/select-quiz", async (req, res) => {
   const { quizId } = req.body;
-  const quizzes = readQuizzes();
-  const quiz = quizzes.find((q) => q.id === quizId);
+  const quiz = await db.getQuizById(quizId);
 
   if (!quiz) {
     return res.status(404).json({ error: "Quiz bulunamadı" });
@@ -98,8 +77,8 @@ io.on("connection", (socket) => {
   console.log("Bir kullanıcı bağlandı:", socket.id);
 
   // Host: Soruyu başlat (seçili testten sıradaki soru)
-  socket.on("send-question", () => {
-    const quiz = getActiveQuiz();
+  socket.on("send-question", async () => {
+    const quiz = await getActiveQuiz();
     if (!quiz) {
       // aktif test yoksa host'a haber ver
       socket.emit("no-quiz-selected");
@@ -129,8 +108,8 @@ io.on("connection", (socket) => {
   });
 
   // Oyuncu cevap gönderdi
-  socket.on("answer", (answer) => {
-    const quiz = getActiveQuiz();
+  socket.on("answer", async (answer) => {
+    const quiz = await getActiveQuiz();
     if (!quiz) return;
 
     answers[socket.id] = answer;
@@ -165,6 +144,16 @@ io.on("connection", (socket) => {
 });
 
 const PORT = process.env.PORT || 3000;
-server.listen(PORT, '0.0.0.0', () => {
-  console.log(`🚀 Kahoot klonun hazır -> http://localhost:${PORT}`);
-});
+
+// Initialize database and start server
+db.initDatabase()
+  .then(() => {
+    server.listen(PORT, '0.0.0.0', () => {
+      console.log(`🚀 Kahoot klonun hazır -> http://localhost:${PORT}`);
+      console.log(`📊 Database bağlantısı aktif`);
+    });
+  })
+  .catch((error) => {
+    console.error('❌ Database başlatılamadı:', error);
+    process.exit(1);
+  });

@@ -52,16 +52,76 @@ http://localhost:3000/app.html
 - **Backend**: Node.js + Express
 - **Real-time**: Socket.io
 - **Frontend**: Vanilla JavaScript + CSS
-- **Storage**: JSON file system
+- **Database**: PostgreSQL
 
 ## 📦 Dependencies
 
 - express: ^5.2.1
 - socket.io: ^4.8.3
+- pg: ^8.13.1
 
-## 🌐 Deployment
+## 🌐 Deployment to Render
 
-Deploy to Railway, Render, or any Node.js hosting platform.
+### 1. Setup PostgreSQL Database
+
+1. Go to [Render Dashboard](https://dashboard.render.com/)
+2. Click **"New +"** → **"PostgreSQL"**
+3. Fill in the details:
+   - **Name**: kahoot-db (or any name you prefer)
+   - **Database**: kahoot_db
+   - **User**: will be auto-generated
+   - **Region**: Choose closest to you
+   - **Plan**: Free
+4. Click **"Create Database"**
+5. **Copy the Internal Database URL** (starts with `postgresql://`)
+
+### 2. Deploy Web Service
+
+1. Click **"New +"** → **"Web Service"**
+2. Connect your GitHub repository
+3. Fill in the details:
+   - **Name**: kahoot-quiz-web
+   - **Environment**: Node
+   - **Build Command**: `npm install`
+   - **Start Command**: `npm start`
+   - **Plan**: Free
+4. Add Environment Variable:
+   - **Key**: `DATABASE_URL`
+   - **Value**: Paste the Internal Database URL from step 1
+5. Click **"Create Web Service"**
+
+### 3. Access Your Application
+
+Once deployed, Render will provide you a URL like:
+```
+https://kahoot-quiz-web.onrender.com/app.html
+```
+
+**Note**: The free tier may sleep after inactivity. First request might be slow.
+
+## 💻 Local Development Setup
+
+1. Install PostgreSQL locally
+2. Create a database:
+```bash
+createdb kahoot_db
+```
+3. Copy environment variables:
+```bash
+cp .env.example .env
+```
+4. Edit `.env` and set your local database URL:
+```
+DATABASE_URL=postgresql://username:password@localhost:5432/kahoot_db
+```
+5. Install dependencies:
+```bash
+npm install
+```
+6. Start the server:
+```bash
+npm start
+```
 
 Environment variables:
 - `PORT` - Server port (auto-assigned by platform)
